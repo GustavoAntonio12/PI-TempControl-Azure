@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://kit.fontawesome.com/2eecc47c4e.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="icon" type="image/x-icon" href="../../assets/img/Logo.png">
+  <script src="../../assets/js/funcoes.js"></script>
+  <script src="../../assets/js/validacoes.js"></script>
+
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <title>USUÁRIOS</title>
+</head>
+
+
+<body onload="obterUsuariosCliente()">
+  <div class="wrapper">
+    <div class="sidebar">
+      <div class="dropdown">
+        <a href="#"><i class="fa-solid fa-circle-user" style="font-size:70px;  color: white;"></i></a>
+        <div class="dropdown-content">
+            <h4>Olá <span id="spanNome"></span></h4>
+        </div>
+    </div>
+    <ul>
+        <li><a href="./index.html"><i class="fas fa-home"></i>Home</a></li>
+        <li><a href="./solicitacoes.html"><i class="fas fa-solid fa-file-contract"></i>Solicitações</a></li>
+        <li><a href="./entregas.html"><i class="fas fa-regular fa-truck-ramp-box"></i>Entregas</a></li>
+        <li><a href="./sensores.html"><i class="fas fa-solid fa-pager"></i>Sensores</a></li>
+        <li><a href="./medicamentos.html"><i class="fas fa-solid fa-file-medical"></i>Medicamentos</a></li>
+        <li><a href="./graficos.html"><i class="fas fa-solid fa-chart-gantt"></i></i>Gráficos/Alertas</a></li>
+        <li><a href="./dadosPessoais.html"><i class="fas fa-solid fa-user"></i></i>Dados Pessoais</a></li>
+        <li><a href="./usuarios.html"><i class="fas fa-solid fa-users"></i>Usuários</a></li>
+        <li><a href="../../index.html" onclick="signOut()"><i class="fas fa-solid fa-arrow-right-from-bracket"></i></i>Sair</a></li>
+    </ul> 
+
+    </div>
+    <div class="main_content">
+      <div class="header">
+        <!-- <input type="text" placeholder="Pesquise.."> -->
+        <img src="img/logo_nome_sembg.png">
+      </div>
+      <div class="info">
+        <!-- Login -->
+        <div class="banner-form alt-banner sign">
+          <div class="container">
+            <div class="cartao">
+              <h2>Cadastro De Usuários</h2>
+              <div class="form">
+                <div class="field">
+                  <label for="txtNome">
+                    Nome:
+                  </label>
+                  <input id="txtNome" type="text" placeholder="Digite nome completo do usuário">
+                </div>
+                <div class="field">
+                  <label for="txtEmail">
+                    Email:
+                  </label>
+                  <input id="txtEmail" type="email" placeholder="Ex: emailusuario@email.com">
+                </div>
+                <div class="field">
+                  <label for="txtTipo">
+                    Tipo Usuário:
+                  </label>
+                  <select name="" id="txtTipo">
+                    <option value="admin-f">Administrador Farmacêutica</option>
+                    <option value="laboratorio">Laboratório</option>
+                    <option value="logistico">Logística</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="txtPassword">
+                    Senha:
+                  </label>
+                  <input id="txtPassword" type="password" placeholder="Ex: **********">
+                </div>
+                <button onclick="validarCadastro()">Cadastrar</button>
+              </div>
+              <div class="lista-dados">
+                <h1>Usuários</h1>
+                <ul id="ulListaUsuario" class="ul-lista-dados" class="ul-lista-dados">
+                  <li class="medicamento-container-titulo">
+                    <span class="titulo-tabela-container">Nome Usuário</span>
+                    <span class="titulo-tabela-container">E-mail</span>
+                    <span class="titulo-tabela-container">Tipo Usuário</span>
+                    <span class="titulo-tabela-container">Administrador</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+
+
+<script>
+  var dadosSession = obterDadosSession();
+  var nome = dadosSession.nomeUsuario;
+  var email = dadosSession.emailUsuario;
+  var idCliente = dadosSession.fkCliente;
+  var idAdmin = dadosSession.idUsuario;
+  spanNome.innerHTML = dadosSession.nomeUsuario;
+
+  function obterUsuariosCliente() {
+
+    fetch(`/usuarios/listarPorCliente/${idCliente}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }).then(function (resposta) {
+      console.log('Resposta: ', resposta);
+
+      if (resposta.ok) {
+        resposta.json().then(json => {
+          console.log(json);
+
+          usuarios = json;
+          if (usuarios.length > 0) {
+            for (let index = 0; index < usuarios.length; index++) {
+              var usuario = usuarios[index];
+              renderizarUsuario(usuario);
+            }
+          }
+        });
+
+      } else {
+        Swal.fire({
+          title: 'Erro',
+          text: 'Houve um erro ao carregar as usuários',
+          icon: 'error',
+          showConfirmButton: false,
+          showDenyButton: true,
+          denyButtonText: 'OK'
+        });
+      }
+
+    }).catch(function (erro) {
+      Swal.fire({
+        title: 'Erro',
+        text: 'Houve um erro ao carregar os usuários',
+        icon: 'error',
+        showConfirmButton: false,
+        showDenyButton: true,
+        denyButtonText: 'OK'
+      });
+      console.log(`ERRO: ${erro}`);
+    });
+  }
+
+
+  function renderizarUsuario(usuario) {
+    let admin;
+    if (usuario.admin == null) {
+      admin = "Sem Admistrador";
+    }
+    else {
+      admin = usuario.admin;
+    }
+    ulListaUsuario.innerHTML += `
+            <li id="${usuario.idEntrega}" class="medicamento-container" >
+                <span class="titulo-tabela-container" style="width: 100%;height: 100%;">${usuario.nomeUsuario}</span>
+                <span class="titulo-tabela-container" style="width: 100%;height: 100%;">${usuario.emailUsuario}</span>
+                <span class="titulo-tabela-container" style="width: 100%;height: 100%;">${usuario.tipoUsuario}</span>
+                <span class="titulo-tabela-container" style="width: 100%;height: 100%;">${admin}</span>
+            </li>
+        `;
+  }
+
+
+
+  function validarCadastro() {
+    var nomeVar = txtNome.value;
+    var emailVar = txtEmail.value;
+    var senhaVar = txtPassword.value;
+    var tipoUsuarioVar = txtTipo.value;
+    var fkClienteVar = idCliente;
+    var fkAdminVar = idAdmin;
+
+
+
+    if (nomeVar == ""|| emailVar == "" || senhaVar == "") {
+      Swal.fire({
+        title: 'Erro',
+        text: 'Todos os campos são obrigatórios',
+        icon: 'error',
+        showConfirmButton: false,
+        showDenyButton: true,
+        denyButtonText: 'OK'
+      });
+      return;
+    }
+
+    if (emailVar.indexOf('@') <= 0 || emailVar.indexOf('.com') <= 2) {
+      Swal.fire({
+        title: 'Erro',
+        text: 'Email e/ou Senha incorreto(s)',
+        icon: 'error',
+        showConfirmButton: false,
+        showDenyButton: true,
+        denyButtonText: 'OK'
+      });
+      return;
+    }
+
+    if (senhaVar.length < 8) {
+      Swal.fire({
+        title: 'Erro',
+        text: 'Email e/ou Senha incorreto(s)',
+        icon: 'error',
+        showConfirmButton: false,
+        showDenyButton: true,
+        denyButtonText: 'OK'
+      });
+      return;
+    }
+
+    fetch("/usuarios/cadastrarUsuario", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        nomeServer: nomeVar,
+        emailServer: emailVar,
+        senhaServer: senhaVar,
+        tipoUsuarioServer: tipoUsuarioVar,
+        clienteServer: fkClienteVar,
+        adminServer: fkAdminVar
+      })
+    }).then(function (resposta) {
+      console.log('Resposta: ', resposta);
+
+      if (resposta.ok) {
+        console.log(resposta);
+
+        Swal.fire({
+          title: 'Sucesso',
+          text: 'Cadastrado realizado com sucesso',
+          icon: 'success',
+          showConfirmButton: false,
+          showDenyButton: true,
+          denyButtonText: 'OK'
+        });
+        window.location.reload(true);
+
+      } else {
+        Swal.fire({
+          title: 'Sucesso',
+          text: 'Houve um erro ao realizar O cadastro ',
+          icon: 'error',
+          showConfirmButton: false,
+          showDenyButton: true,
+          denyButtonText: 'OK'
+        });
+
+      }
+    }).catch(function (erro) {
+      Swal.fire({
+        title: 'Sucesso',
+        text: 'Houve um erro ao realizar O cadastro ',
+        icon: 'error',
+        showConfirmButton: false,
+        showDenyButton: true,
+        denyButtonText: 'OK'
+      });
+      console.log(`ERRO: ${erro}`);
+    })
+
+    return false;
+  }
+
+  function sair() {
+    signOut();
+  }
+
+</script>
+
+
+
+
+</html>
